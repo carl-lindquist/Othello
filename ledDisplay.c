@@ -2,7 +2,7 @@
     Carl Lindquist
     Nov 15, 2016
     LED Panel control code for the 16x32 RGB display 
-    from CE 121
+    from CE 121. Relies on hardware in the PSOC 5LP
 
 */
 
@@ -16,8 +16,9 @@
 
 uint8 colorArr[ROW_COUNT][COLUMN_COUNT] = {};
 
-
 CY_ISR_PROTO(ledUpdateIsr);
+
+//––––––––––––––––––––––––––––––  Public Functions  ––––––––––––––––––––––––––––––//
 
 void ledDisplayStart(void) {
     CyGlobalIntEnable; /* Enable global interrupts. */
@@ -61,6 +62,8 @@ void ledDisplayTest(void) {
     
 }
 
+//––––––––––––––––––––––––––––––  Private Functions  ––––––––––––––––––––––––––––––//
+
 CY_ISR(ledUpdateIsr) {
     uint8 row, column;
     for(row=0; row < HALF_OF_ROWS; row++) {
@@ -93,4 +96,4 @@ CY_ISR(ledUpdateIsr) {
     LED_Display_Timer_ReadStatusRegister();
 }
 
-/* [] END OF FILE */
+// EOF

@@ -1,5 +1,11 @@
-// Carl Lindquist
-// NOV 15, 2016
+/*
+    Carl Lindquist
+    Nov 20, 2016
+    
+    Interface for the 16x32 RGB display from ce121.
+    Relies on hardware in the PSOC 5LP
+
+*/
 
     
 #ifndef _LED_DISPLAY_H_
@@ -44,10 +50,4 @@ void ledDisplayClearDisplay(void);
 void ledDisplayTest(void);
 
 
-    
-    
-    
-    
-    
-    
 #endif

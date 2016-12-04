@@ -10,6 +10,12 @@ void usbStart(void);
 //Returns 1 byte of data from the USBUART if a byte was received since last call
 //Return NULL otherwise
 uint8 usbGetByte(void);
+
+//Sends one byte of data to the USBUART
+void usbSendByte(uint8 byte);
+
+//Sends a string over USB to host, length < 64
+void usbSendString(uint8 string[]);
     
 #endif
 

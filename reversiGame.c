@@ -1,4 +1,4 @@
-/*
+  /*
     Carl Lindquist
     Nov 15, 2016
     CE 121 Final Project
@@ -6,6 +6,10 @@
 
 #include <project.h>
 #include "reversiGame.h"
+#include "uartProtocol.h"
+#include "usbProtocol.h"
+#include "sdCard.H"
+#include <stdio.h>
 
 #define UP 0
 #define DOWN 1
@@ -19,26 +23,49 @@ CY_ISR_PROTO(cursorIsr);
 
 uint8 board[GAME_BOARD_SIZE][GAME_BOARD_SIZE] = {};
 
-uint8 gameOver = 0;
-uint8 playerPressedP = 0;
+
+//uint8 currentPlayer;
+uint8 localPlayerPressedP = 0;
 uint8 passesInARow = 0;
+uint8 localTurnCount;
+uint8 remoteTurnCount;
 
 
-void gameBoardInit(void) {
+void boardUpdateDisplay(void);
+void boardPlaceValue(uint8 value, uint8 row, uint8 column);
+
+
+void gameBoardInit(uint32 localIpAddress, uint32 remoteIpAddress) {
     CYGlobalIntEnable
     Cursor_Timer_Start();
     Cursor_Timer_Isr_StartEx(cursorIsr);
+
     
-    player = RED_PLAYER;
-    gameCursor.color = player;
+    if(localIpAddress < remoteIpAddress) {
+        localPlayer = RED_PLAYER;    
+    } else {
+        localPlayer = BLUE_PLAYER;    
+    }
+
+    
+    gameOver = 0;
+    localTurnCount = 0;
+    remoteTurnCount = 0;
+    gameCursor.enable = 1;
+    gameCursor.color = localPlayer;
     gameCursor.column = 1;
     gameCursor.row = 1;
     
     redScore = 2;
     blueScore = 2;
     
-    
     uint8 row, column;
+    ledDisplayClearDisplay();
+    for(row=0; row < GAME_BOARD_SIZE; row++) {
+        for(column=0; column < GAME_BOARD_SIZE; column++) {
+            ledDisplayWriteColor(COLOR_OFF, row, column);
+        }
+    }
     //Load border
     for(row=GAME_BOARD_SIZE, column=0; column <= GAME_BOARD_SIZE; column++) {
         ledDisplayWriteColor(COLOR_PURPLE, row, column);
@@ -54,6 +81,8 @@ void gameBoardInit(void) {
     boardPlaceValue(BOARD_VALUE_BLUE, row++, column);
     boardPlaceValue(BOARD_VALUE_RED, row--, column++);
     boardPlaceValue(BOARD_VALUE_RED, row, column);
+    
+    uartSetRxMode(RX_MODE_GAMEPLAY);
     
     boardUpdateDisplay();
 }
@@ -112,7 +141,7 @@ uint8 gameUpdateScore() {
 }
 
 //returns number of successful directions for success, 0 for failure
-uint8 executeMove(uint8 row, uint8 column) {
+uint8 executeMove(uint8 row, uint8 column, uint8 player) {
     uint8 success = 0;
     row--; //change to zero indexing
     column--;
@@ -270,7 +299,7 @@ uint8 executeMove(uint8 row, uint8 column) {
             }
         }
     }
-    
+
     return success;
 }
 
@@ -318,72 +347,103 @@ void gameOverScreen(uint8 winner) {
     }
 }
 
-uint8 gameUserInput(uint8 input) {
+uint8 gameRemoteInput(void) {
+    uint8 ret = 0;
+    uint8 enemy = RED_PLAYER;
+    if(gameOver || !uartParseRxPacket()) {
+        return ret; 
+    }
+    
+    if (rxPacket.seq == remoteTurnCount + 1) {
+        if(rxPacket.passFlag) {
+            passesInARow++;
+            uartPrintRxPacket();
+            sdWriteMove((char*)enemyId, 1, rxPacket.row, rxPacket. column);
+            remoteTurnCount++;
+            ret = 1;
+        } else {
+            if(localPlayer == RED_PLAYER) {
+                enemy = BLUE_PLAYER;
+            }
+            if(executeMove(rxPacket.row, rxPacket.column, enemy)) {
+                uartPrintRxPacket();
+                sdWriteMove((char*)enemyId, 0, rxPacket.row, rxPacket. column);
+                remoteTurnCount++;
+                passesInARow = 0;
+                ret = 1;
+            }
+        }
+    }
+    if(passesInARow == 2 || gameUpdateScore() == (uint8)(GAME_BOARD_SIZE*GAME_BOARD_SIZE)) {
+        gameOver = 1;
+        gameOverScreen(determineWinner()); 
+    }
+    boardUpdateDisplay();
+    return ret;
+}
+
+uint8 gameLocalInput(uint8 input) {
+    uint8 ret = 0;
     if(gameOver) {
-        return 1;    
+        return ret;    
     }
     switch(input) {
         case 'w' :
             moveCursor(UP);
-            playerPressedP = 0;
+            localPlayerPressedP = 0;
             break;
         
         case 'a' :
             moveCursor(LEFT);
-            playerPressedP = 0;
+            localPlayerPressedP = 0;
             break;
         
         case 's' :
             moveCursor(DOWN);
-            playerPressedP = 0;
+            localPlayerPressedP = 0;
             break;
         
         case 'd' :
             moveCursor(RIGHT);
-            playerPressedP = 0;
+            localPlayerPressedP = 0;
             break;
             
         case 'h' :
             moveCursor(HOME);
-            playerPressedP = 0;
+            localPlayerPressedP = 0;
             break;
             
         case 'p' :
-            playerPressedP = 1;
+            localPlayerPressedP = 1;
             break;
             
         case '\r' :
-            if (playerPressedP) {
-                playerPressedP = 0;
-                if(++passesInARow == 2) {
-                    gameOver = 1;    
-                }
-                if (player == RED_PLAYER) {
-                    player = BLUE_PLAYER;
-                } else {
-                    player = RED_PLAYER;    
-                }
-                break;
+            if(localPlayerPressedP) {
+                localPlayerPressedP = 0;
+                passesInARow++;
+                localTurnCount++;
+                uartSendTxPacket(localTurnCount, 1, gameCursor.row, gameCursor.column);
+                sdWriteMove((char*)playerId, 1, gameCursor.row, gameCursor.column);
+                ret = 1;
+                break; //dont execute move if player passed
             }
-            if (executeMove(gameCursor.row, gameCursor.column)) {
+            if (executeMove(gameCursor.row, gameCursor.column, localPlayer)) {
                 passesInARow = 0;
-                if (gameUpdateScore() == GAME_BOARD_SIZE*GAME_BOARD_SIZE) {
-                    gameOver = 1;
-                }
-                if (player == RED_PLAYER) {
-                    player = BLUE_PLAYER;
-                } else {
-                    player = RED_PLAYER;    
-                }
+                localTurnCount++;
+                uartSendTxPacket(localTurnCount, 0, gameCursor.row, gameCursor.column);
+                sdWriteMove((char*)playerId, 0, gameCursor.row, gameCursor.column);
+                ret = 1;
             }
-            //send move to remote player
             break;
     }
-    if(gameOver) {
-        gameOverScreen(determineWinner());    
+    if(gameUpdateScore() == (uint8)(GAME_BOARD_SIZE*GAME_BOARD_SIZE) || passesInARow == 2) {
+        gameOver = 1;
+        gameCursor.enable = 0;
+        gameOverScreen(determineWinner()); 
+        uartSendTxPacket(localTurnCount, 1, rxPacket.row, rxPacket.column);
     }
     boardUpdateDisplay();
-    return 0;
+    return ret;
 }
 
 void boardPlaceValue(uint8 value, uint8 row, uint8 column) {
@@ -398,7 +458,7 @@ void boardUpdateDisplay(void) {
         }
     }
     //cursor is indexed by natural numbers
-    if (!gameOver) { //turn off cursor when game is over
+    if (gameCursor.enable) { 
         ledDisplayWriteColor(gameCursor.color, gameCursor.row - 1, gameCursor.column - 1);
     }
 }
@@ -407,14 +467,21 @@ void boardUpdateDisplay(void) {
 CY_ISR(cursorIsr) {
     if (gameCursor.color) {
         gameCursor.color = COLOR_OFF;
-    } else if (player == RED_PLAYER) {
+    } else if (localPlayer == RED_PLAYER) {
         gameCursor.color = COLOR_RED;
-    } else {
+    } else if (localPlayer == BLUE_PLAYER) {
         gameCursor.color = COLOR_BLUE;
     }
     boardUpdateDisplay();
     Cursor_Timer_ReadStatusRegister(); //Clear ISR
 }
 
+void swapLocalPlayer(void) {
+    if (localPlayer == RED_PLAYER) {
+         localPlayer = BLUE_PLAYER;
+    } else {
+        localPlayer = RED_PLAYER;    
+    }
+}
 
 //EOF

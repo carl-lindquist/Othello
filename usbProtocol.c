@@ -1,18 +1,21 @@
-/* ========================================
- *
- * Carl Lindquist
- * USB Communication Protocol
- *
- * ========================================
+/*
+    Carl Lindquist
+    USB Communication Protocol
+    
 */
 
 
 #include <project.h>
 #include "usbProtocol.h"
 
+void usbStart(void);
+uint8 usbGetByte(void);
+
+//––––––––––––––––––––––––––––––  Public Functions  ––––––––––––––––––––––––––––––//
+
 void usbStart(void) {
     CyGlobalIntEnable; /* Enable global interrupts. */
-    USBUART_Start(0u, USBUART_5V_OPERATION);
+    USBUART_Start(0u, USBUART_3V_OPERATION);
     while (!USBUART_GetConfiguration()){};
     USBUART_CDC_Init(); 
 }
@@ -28,6 +31,19 @@ uint8 usbGetByte(void) {
     return '\0';
 }
 
+void usbSendByte(uint8 byte) {
+    while(!USBUART_CDCIsReady());
+    USBUART_PutChar(byte);
+}
+
+void usbSendString(uint8 string[]) {
+    uint8 length = 0;
+    while(string[length++]);
+    while(!USBUART_CDCIsReady());
+    USBUART_PutData(string, length - 1);
+}
+
+//––––––––––––––––––––––––––––––  Private Functions  ––––––––––––––––––––––––––––––//
 
 #ifdef ECHO_CODE
 #define BUFFER_SIZE 64

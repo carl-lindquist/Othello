@@ -16,7 +16,7 @@
 #include "ledDisplay.h"
     
 //Change this value to either 4, 8, or 16
-#define GAME_BOARD_SIZE 4
+#define GAME_BOARD_SIZE 16
     
 
 #define BOARD_VALUE_EMPTY 0
@@ -26,27 +26,45 @@
 #define RED_PLAYER BOARD_VALUE_RED
 #define BLUE_PLAYER BOARD_VALUE_BLUE
 
+enum gamestates {
+    IDLE_STATE,
+    START_STATE,
+    //LOOK_FOR_OPPONENT_STATE, 
+    //DECIDE_TURN_STATE,
+    PLAYER_TURN_STATE,
+    ENEMY_TURN_STATE,
+    GAME_OVER_STATE
+} gameState;
 
 struct cursor {
     uint8 color;
     uint8 row;
     uint8 column;
+    uint8 enable;
 } gameCursor;
 
-uint8 player;
+uint8 localPlayer;
 uint8 redScore;
 uint8 blueScore;
+
+uint8 gameOver;
     
 
-void gameBoardInit(void);
+void gameBoardInit(uint32 localIpAddress, uint32 remoteIpAddress);
 
-uint8 gameUserInput(uint8 input);
+uint8 gameLocalInput(uint8 input);
+
+uint8 gameRemoteInput(void);
 
 uint8 gameUpdateScore();
     
-void boardPlaceValue(uint8 value, uint8 row, uint8 column);
+//void boardPlaceValue(uint8 value, uint8 row, uint8 column);
 
-void boardUpdateDisplay(void);
+//void boardUpdateDisplay(void);
+
+//––––––––––––––––––––––––––––––  Test Functions  ––––––––––––––––––––––––––––––//
+
+void swapLocalPlayer(void);
 
     
     
