@@ -13,8 +13,11 @@
 #define ROW_COUNT 16
 #define COLUMN_COUNT 32
 
+
 uint8 colorArr[ROW_COUNT][COLUMN_COUNT] = {};
 
+
+//––––––  Private Declarations  ––––––//
 CY_ISR_PROTO(ledUpdateIsr);
 
 
