@@ -4,7 +4,6 @@
     
     Interface for the 16x32 RGB display from ce121.
     Relies on hardware in the PSOC 5LP
-
 */
 
     
@@ -13,8 +12,6 @@
     
 #include <project.h>
     
-#define NUM_DISPLAY_ROWS 16
-#define NUM_DISPLAY_COLUMNS 32
     
 #define COLOR_OFF 0
 #define COLOR_RED 1
