@@ -29,7 +29,7 @@
 	    	help
 	    	hello
         
-[byte]	Bytes to be buffered, '\r' executes buffer	
+[byte]	Bytes to be buffered, '\r' executes buffer.
 */
 void runShell(uint8 byte);
     

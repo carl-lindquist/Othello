@@ -36,7 +36,7 @@ int main()
     uint8 byte = 0;
 
     usbSendString((uint8*)"-- Reversi by Cral --\r");
-    usbSendString((uint8*)"Type 'help' to begin.\r\r");
+    usbSendString((uint8*)"Type 'help' to begin.\r");
     gameState = IDLE_STATE;
     
     

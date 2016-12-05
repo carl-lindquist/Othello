@@ -116,11 +116,11 @@ void runCommand(void) {
             case HELP:
                 usbSendString((uint8*)"\r   Valid commands:");
                 usbSendString((uint8*)"\r      advertise [playerId]");
-                usbSendString((uint8*)"\r      connect 
-                                            [ipAddress in dotted deimal notation]");
+                usbSendString((uint8*)"\r      connect" 
+                                            " [ipAddress in dotted deimal notation]");
                 usbSendString((uint8*)"\r      status");
                 usbSendString((uint8*)"\r      start");
-                usbSendString((uint8*)"\r      disconnect\r");
+                usbSendString((uint8*)"\r      disconnect");
                 break;
                 
             case HELLO:

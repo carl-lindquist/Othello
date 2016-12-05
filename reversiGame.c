@@ -71,8 +71,8 @@ void gameBoardInit(uint32 localIpAddress, uint32 remoteIpAddress) {
     gameCursor.color = localPlayer;
     gameCursor.column = 1;
     gameCursor.row = 1;
-    uint8 localPlayerPressedP = 0;
-    uint8 passesInARow = 0;
+    localPlayerPressedP = 0;
+    passesInARow = 0;
     
     redScore = 2;
     blueScore = 2;

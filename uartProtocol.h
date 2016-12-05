@@ -5,19 +5,22 @@
     Protocol specified in lab manual
 
     USAGE:
-    	Start by calling uartProtocolStart().
-		Continuously poll uartValidateNewestPacket(), after
-			a successful return uartUpdateTxPacket() and
-			uartParseRxPacket() can be called.
+    	Call uartProtocolStart()
+        Advertise and connect to a remote player
+        Change to RX_MODE_GAMEPLAY
+        
+		Continuously poll uartParseRxPacket()
+            Execute move in rxPacket struct
+        uartSendTxPacket() when appropraite
 */
             
 #ifndef UART_PROTOCOL_H
 #define UART_PROTOCOL_H
 
-    
+
 #include <project.h>
 
-    
+
 #define MAX_ID_LENGTH 8
  
 #define PLAYER 1
@@ -35,7 +38,6 @@ enum rxmodes {
     RX_MODE_SETUP,
     RX_MODE_GAMEPLAY,
 };
-
 uint8 rxPrintAllowed;
 
 typedef struct {
@@ -44,54 +46,103 @@ typedef struct {
     uint8 passFlag;
     uint8 row;
     uint8 column;
-    uint8 packetReady;
 } packet;
 
-// packet txPacket;
 packet rxPacket;
 
+//––––––––––––––––––––––––––––––  Public Functions  ––––––––––––––––––––––––––––––//
 
-//Initializes txPacket and UART comms, does not init enemyIndices
+/*
+[desc]  Initializes UART comms. Sets rxMode to RX_MODE_SETUP.
+*/
 void uartProtocolStart(void);
 
-//Load Id into player or enemy
+
+/*
+[desc]  Loads an ID for either player or enemy. Both calls are required for
+        successful packet parsing and sending.
+
+[playerOrEnemy] One of two macros deciding where to load the id.
+[id] String holding the PlayerId to be loaded.
+*/
 void uartLoadId(uint8 playerOrEnemy, char id[]);
 
-//Store ipAddress
+/*
+[desc]  Stores an Ip Address for either player or enemy. Both calls are required 
+        to start reversi correctly, as the Ip Addresses decide which player goes
+        first.
+
+[playerOrEnemy] One of two macros deciding where to store the Ip Address.
+[id] String holding the "dotted decimal" Ip Address to be loaded.
+*/
 void uartStoreIpAddress(uint8 playerOrEnemy, char dottedIpAddress[]);
 
-//Sends the advertise command over UART, given a player id to braodcast
+
+/*
+[desc]  Sends the advertise command over UART for the WIFI card to broadcast.
+        User is required to call this function prior to sending any txPackets.
+
+[id] String holding the PlayerId to be broadcast.
+*/
 void uartSendAdvertise(char id[]);
 
-//Sends the connect command over UART, given an ipAddress to connect to
+
+/*
+[desc]  Sends the connect command over UART for the WIFI card
+        to connect two players. 
+
+[id] String holding the "dotted decimal" Ip Address to connect to.
+*/
 void uartSendConnect(char ipAddress[]);
 
-//Sends the disconnect command
+
+/*
+[desc]  Sends the disconnect command over UART for the WIFI card
+        to disconnect two players. 
+*/
 void uartSendDisconnect(void);
 
-//Sends a string over UART. Length < 129
-void uartSendString(uint8 string[]);
 
-//Loads data passed into txBuffer to be sent by UART
+/*
+[desc]  Sends a txPacket formatted to lab manual specification
+        to the WIFI card. Two players must already be connected
+        prior to calling this function.
+
+[id] String holding the "dotted decimal" Ip Address to connect to.
+*/
 void uartSendTxPacket(uint8 seq, uint8 passFlag, uint8 row, uint8 column);
 
-//Retransmits whatever was last sent by UART
+
+/*
+[desc]  Retransmits the last packet loaded by uartSendTxPacket().
+*/
 void uartTransmitPacketAgain(void);
 
-//Checks if a valid rxPacket is ready to be parsed
-uint8 uartValidPacketReceived(void);
 
-//Modifies Rx mode according to enum above
+/*
+[desc]  Changes the rxMode between RX_MODE_SETUP and RX_MODE_GAMEPLAY.
+*/
 void uartSetRxMode(uint8 mode);
 
-//Loads data received by UART into the rxPacket struct
-//Returns 1 for success, 0 for parsing failure
+
+/*
+[desc]  Loads data received by UART into the rxPacket struct. 
+        This function should be called constantly to catch any incoming 
+        enemy packets when in RX_MODE_GAMEPLAY.
+
+[ret]   1 if a packet was successfully parsed, 0 otherwise
+*/
 uint8 uartParseRxPacket(void);
 
-
+/*
+[desc]  Empties the RxBuffer. This function should be called after a move
+        has been successfully executed.
+*/
 void uartClearRxBuffer(void);
 
-
+/*
+[desc]  Prints the latest RxPacket received to the USBUART
+*/
 void uartPrintRxPacket(void);
 
 #endif //UART_PROTOCOL_H

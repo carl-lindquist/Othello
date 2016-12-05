@@ -17,13 +17,6 @@
 #define STRING_SIZE 64
 
 
-uint8 rxMode;
-
-
-CY_ISR_PROTO(txIsr);
-CY_ISR_PROTO(rxIsr);
-CY_ISR_PROTO(timer500msIsr);
-
 /* 
 –––––––––––  Packet Structure  –––––––––––
 (0x55) (0xaa) (1-8B ID) (0x20) (3B Move#)
@@ -37,6 +30,7 @@ uint8 txBuffer[BUFFER_SIZE];
 uint8 txCount;
 uint8 rxCount;
 uint8 transmitAllowed;
+uint8 rxMode;
 
 
 uint8 playerPacketLength;
@@ -61,6 +55,12 @@ void setIndices(uint8 playerOrEnemy);
 uint64 stringToNumber(uint8 string[], uint8 length);
 void uartPrintPacket(uint8 packet[]);
 void uartPrintTxPacket(void);
+void uartSendString(uint8 string[]);
+uint8 uartValidPacketReceived(void);
+
+CY_ISR_PROTO(txIsr);
+CY_ISR_PROTO(rxIsr);
+CY_ISR_PROTO(timer500msIsr);
 
 
 //––––––––––––––––––––––––––––––  Public Functions  ––––––––––––––––––––––––––––––//
@@ -134,23 +134,6 @@ void uartSendDisconnect(void) {
     uartSendString((uint8*)outString);
 }
 
-
-void uartSendString(uint8 string[]) {
-    uint8 length = 0;
-    while(string[length]) {
-        txBuffer[length] = string[length];
-        length++;
-    }
-    txBuffer[length] = '\0';
-    UART_PutString((char*)txBuffer);
-    // UART_Tx_Isr_Enable();
-    // UART_PutChar(' ');
-    // while(txCount < length);
-    // UART_Tx_Isr_Disable();
-    txCount = 0;
-}
-
-
 void uartSendTxPacket(uint8 seq, uint8 passFlag, uint8 row, uint8 column) {
     sprintf((char*)&txPacketArr[playerSeqIndex], "%03d", (int)seq);
      
@@ -166,7 +149,6 @@ void uartSendTxPacket(uint8 seq, uint8 passFlag, uint8 row, uint8 column) {
     usbSendString(txPacketArr);
 }
 
-
 void uartTransmitPacketAgain(void) {
     if(transmitAllowed) {
         char outString[30] = {};
@@ -178,7 +160,62 @@ void uartTransmitPacketAgain(void) {
     }     
 }
 
+void uartClearRxBuffer(void) {
+    uint8 i = 0;  
+    for(; i < BUFFER_SIZE; i++) {
+        rxBuffer[i] = '\0';    
+    }
+}
 
+uint8 uartParseRxPacket(void) {
+    if(!uartValidPacketReceived()) {
+        return 0;    
+    }
+    sprintf((char*)rxPacket.id, "%.*s", enemyIdLength, &rxPacketArr[ID_INDEX]);
+
+    
+    rxPacket.seq = stringToNumber(&rxPacketArr[enemySeqIndex], 3); //Length of seq string
+
+
+    if(rxPacketArr[enemyPFlagIndex] == '0') {
+        rxPacket.passFlag = 0;
+    } else {
+        rxPacket.passFlag = 1;    
+    }
+
+    rxPacket.row = stringToNumber(&rxPacketArr[enemyRowIndex], 2);
+    rxPacket.column = stringToNumber(&rxPacketArr[enemyColumnIndex], 2);
+    //uartClearRxBuffer();
+    return 1;
+}
+
+void uartPrintRxPacket(void) {
+    usbSendString((uint8*)"\rGood packet received: ");
+    char outString[MAX_PACKET_LENGTH + 1] = {};
+    sprintf(outString, "%s\r", rxPacketArr);
+    usbSendString((uint8*)outString);
+}
+
+
+//––––––––––––––––––––––––––––––  Private Functions  ––––––––––––––––––––––––––––––//
+
+//Sends a string over UART using UART_PutString
+void uartSendString(uint8 string[]) {
+    uint8 length = 0;
+    while(string[length]) {
+        txBuffer[length] = string[length];
+        length++;
+    }
+    txBuffer[length] = '\0';
+    UART_PutString((char*)txBuffer);
+    // UART_Tx_Isr_Enable();
+    // UART_PutChar(' ');
+    // while(txCount < length);
+    // UART_Tx_Isr_Disable();
+    txCount = 0;
+}
+
+//Returns 1 if rxBuffer is currently holding a valid rxPacket
 uint8 uartValidPacketReceived(void) {
     uint8 i;
     uint8 ret = 1;
@@ -227,49 +264,8 @@ uint8 uartValidPacketReceived(void) {
     return ret;
 }
 
-
-void uartClearRxBuffer(void) {
-    uint8 i = 0;  
-    for(; i < BUFFER_SIZE; i++) {
-        rxBuffer[i] = '\0';    
-    }
-}
-
-
-uint8 uartParseRxPacket(void) {
-    if(!uartValidPacketReceived()) {
-        return 0;    
-    }
-    sprintf((char*)rxPacket.id, "%.*s", enemyIdLength, &rxPacketArr[ID_INDEX]);
-
-    
-    rxPacket.seq = stringToNumber(&rxPacketArr[enemySeqIndex], 3); //Length of seq string
-
-
-    if(rxPacketArr[enemyPFlagIndex] == '0') {
-        rxPacket.passFlag = 0;
-    } else {
-        rxPacket.passFlag = 1;    
-    }
-
-    rxPacket.row = stringToNumber(&rxPacketArr[enemyRowIndex], 2);
-    rxPacket.column = stringToNumber(&rxPacketArr[enemyColumnIndex], 2);
-    rxPacket.packetReady = 1;
-    //uartClearRxBuffer();
-    return 1;
-}
-
-
-void uartPrintRxPacket(void) {
-    usbSendString((uint8*)"\rGood packet received: ");
-    char outString[MAX_PACKET_LENGTH + 1] = {};
-    sprintf(outString, "%s\r", rxPacketArr);
-    usbSendString((uint8*)outString);
-}
-
-
-//––––––––––––––––––––––––––––––  Private Functions  ––––––––––––––––––––––––––––––//
-
+//Sets the indices for various information in either enemy or player
+//packets. Ex enemySeqIndex
 void setIndices(uint8 playerOrEnemy) {    
     uint8 i;
     if(playerOrEnemy == PLAYER) {
@@ -300,6 +296,7 @@ void setIndices(uint8 playerOrEnemy) {
     } 
 }
 
+//Prints a string over USBUART
 void uartPrintPacket(uint8 packet[]) {
     char outString[MAX_PACKET_LENGTH + 1] = {};
     sprintf(outString, "%s\r", packet);
@@ -319,6 +316,7 @@ uint64 stringToNumber(uint8 string[], uint8 length) {
     return number;
 }
 
+//Returns 1 if the two input strings are equal
 uint8 uCompareStrings(char string1[], char string2[]) {
     uint8 i = 0;
     while(string1[i] && string2[i]) {
@@ -333,6 +331,7 @@ uint8 uCompareStrings(char string1[], char string2[]) {
     return i;
 }
 
+//*** made obsolete by UART_PutString() */
 CY_ISR(txIsr) { //FIFO EMPTY
     uint8 i = 0;
     for(; i < 4 && txBuffer[txCount]; i++) {
@@ -340,7 +339,21 @@ CY_ISR(txIsr) { //FIFO EMPTY
     }  
 }
 
+/*
+[desc]  
+    This complex rx interrupt is divided into two stages:
+    Stage 1:    RX_MODE_SETUP is designed specifically to handle the 
+                packets received before the game starts. It buffers
+                data received until a newline is encountered. Once a
+                newline is found, the buffer is printed to USBUART.
+                The buffer is scanned for two special strings which 
+                contain ipAddress. These are stored upon receipt. 
 
+    Stage 2:    RX_MODE_GAMEPLAY stores rx packets as
+                specified by the lab manual.
+
+    User has the responsibilty to swap modes when appropriate.
+*/
 CY_ISR(rxIsr) { //BYTE RECEIVED
     uint8 byte = UART_GetChar();
     uint8 i;
