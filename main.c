@@ -3,8 +3,12 @@
     Nov 24, 2016
     CE 121 Final Project
     
-    Main control code to run reversi
-    for the PSOC 5LP
+    Main state machine to play Reversi on the PSOC5 LP
+    Game begins as a simple shell output over USBUART.
+    After successful connection to a remote player, typing start will
+    begin the game. Use the "wasd" keys to control the cursor position, 
+    return either places the piece or passes if "p" was pressed.
+
 */
 #include <project.h>
 #include <stdio.h>
@@ -16,11 +20,6 @@
 #include "uartProtocol.h"
 #include "sdCard.h"
 #include "reversiShell.h"
-
-
-
-
-void displayScoreLCD(void);
 
 
 int main()
@@ -105,17 +104,5 @@ int main()
     
     for(;;);
 } //End of main
-
-
-void displayScoreLCD(void) {
-    LCD_ClearDisplay();
-    char outString[16] = {};
-    sprintf(outString, "Red: %d", redScore);
-    LCD_PrintString(outString);
-    LCD_Position(1,0);
-    outString[0] = '\0';
-    sprintf(outString, "Blue: %d", blueScore);
-    LCD_PrintString(outString);
-}
 
 //EOF

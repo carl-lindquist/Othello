@@ -12,11 +12,24 @@
 #include <project.h>
     
     
-//Returns 1 for successful initialization, 0 otherwise.
+/*
+[desc]	Opens and overwrites a file called "Report.txt" on the optional SD Card
+	
+[ret]	Returns 1 for success, 0 otherwise
+*/
 uint8 sdStart(void);
 
 
-//Returns 1 for successful write, 0 otherwise.
+/*
+[desc]	Appends a formatted string describing a move to the file: "Report.txt" 
+
+[id] Variable length player Id to signify the person making the move
+[pFlag] Pass Flag value for the move, should be 0 or 1
+[row] Row number of last move
+[column] Column number of move
+	
+[ret]	Returns 1 for success, 0 otherwise
+*/
 uint8 sdWriteMove(char id[], uint8 pFlag, uint8 row, uint8 column);
 
     

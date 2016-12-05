@@ -81,10 +81,9 @@ uint8 sdClose(void) {
 
 //––––––––––––––––––––––––––––––  Outdated  ––––––––––––––––––––––––––––––//
 
-//#define SD_CARD_TEST
 #ifdef SD_CARD_TEST
 
-#include "usbProtocol.h"
+//#include "usbProtocol.h"
         
     if(sdStart()) {
         usbSendString((uint8*)"Start Successful\r");    

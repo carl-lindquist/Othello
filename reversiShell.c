@@ -30,7 +30,7 @@ uint8 determineCommand(char command[]);
 
 void runShell(uint8 byte) {
     if(byte) {
-        if((char)byte == '\r') {
+        if((char)byte == '\r' || bufferCount == SHELL_BUFFER_SIZE) {
             rxPrintAllowed = 1;
             buffer[bufferCount] = '\0';
             runCommand();
@@ -61,6 +61,7 @@ enum commands {
     HELLO,
 };
 
+//executes a command based on the return of determineCommand()
 void runCommand(void) {
     char command[COMMAND_LENGTH] = {};
     char argument[ARGUMENT_LENGTH] = {};
@@ -113,7 +114,13 @@ void runCommand(void) {
                 break;
                 
             case HELP:
-                usbSendString((uint8*)"\r\rUsage: advertise connect start.\r");
+                usbSendString((uint8*)"\r   Valid commands:");
+                usbSendString((uint8*)"\r      advertise [playerId]");
+                usbSendString((uint8*)"\r      connect 
+                                            [ipAddress in dotted deimal notation]");
+                usbSendString((uint8*)"\r      status");
+                usbSendString((uint8*)"\r      start");
+                usbSendString((uint8*)"\r      disconnect\r");
                 break;
                 
             case HELLO:
@@ -126,6 +133,7 @@ void runCommand(void) {
     }
 }
 
+//Returns which command should be executed based on the string input
 uint8 determineCommand(char command[]) {
     if(compareStrings(command, "hello")) {
         return HELLO;    
@@ -146,6 +154,7 @@ uint8 determineCommand(char command[]) {
     }
 }
 
+//Returns 1 if the two input strings are equal
 uint8 compareStrings(char string1[], char string2[]) {
     uint8 string1Length;
     uint8 string2Length;

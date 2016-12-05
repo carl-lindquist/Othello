@@ -26,23 +26,32 @@
 #define COLOR_VALUE_ERROR -2
     
     
-//	Starts LEDInterrupt and LEDInterrupt Timer
+/*
+[desc]	Starts LEDInterrupt and LEDInterrupt Timer
+*/
 void ledDisplayStart(void);
 
+/*
+[desc]	Writes a color value into the display, and will appear on the 
+		next display interrupt. Color and error defines start on line 16
+		EX: ledDisplayWriteColor(COLOR_RED, 0, 0);
 
-//	Writes a color value into the display, and will appear on the 
-//	next display interrupt. Color and error defines start on line 16
-//	errors: ret -1 row > 15, column > 31
-//	        ret -2 color < 0, color > 7
-//	EX: ledDisplayWriteColor(COLOR_RED, 0, 0);
+[color] Variable length player Id to signify the person making the move
+[row] Row number of LED to be set.
+[column] Column of LED to be set.
+	
+[ret]	Returns 1 for success, ERROR_CODE otherwise
+*/
 uint8 ledDisplayWriteColor(uint8 color, uint8 row, uint8 column);
 
-
-//	Clears the entire display
+/*
+[desc]	Clears the entire display
+*/
 void ledDisplayClearDisplay(void);
 
-
-//	Displays a test pattern on the display
+/*
+[desc]	Loads a test pattern into the display
+*/
 void ledDisplayTest(void);
 
 

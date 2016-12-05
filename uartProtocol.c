@@ -1,6 +1,7 @@
 /*
    Carl Lindquist
    Nov 15, 2016
+
    UART control code for the ce 121 Final Project
    Protocol specified in lab manual
 */
@@ -38,7 +39,6 @@ uint8 rxCount;
 uint8 transmitAllowed;
 
 
-
 uint8 playerPacketLength;
 uint8 playerIdLength;
 uint8 playerSeqIndex;
@@ -58,13 +58,9 @@ uint8 enemyColumnIndex;
 //–––––––––– Private Declarations ––––––––––//
 
 void setIndices(uint8 playerOrEnemy);
-void uartUpdateTxPacket(uint8 seq, uint8 passFlag, uint8 row, uint8 column);
 uint64 stringToNumber(uint8 string[], uint8 length);
 void uartPrintPacket(uint8 packet[]);
 void uartPrintTxPacket(void);
-void uartTestRxPacket(void);
-//void uartTransmit(void);
-
 
 
 //––––––––––––––––––––––––––––––  Public Functions  ––––––––––––––––––––––––––––––//
@@ -147,12 +143,10 @@ void uartSendString(uint8 string[]) {
     }
     txBuffer[length] = '\0';
     UART_PutString((char*)txBuffer);
-//    UART_Tx_Isr_Enable();
-//    UART_PutChar(' ');
-//    while(txCount < length){
-//        
-//    }
-//    UART_Tx_Isr_Disable();
+    // UART_Tx_Isr_Enable();
+    // UART_PutChar(' ');
+    // while(txCount < length);
+    // UART_Tx_Isr_Disable();
     txCount = 0;
 }
 
@@ -189,9 +183,6 @@ uint8 uartValidPacketReceived(void) {
     uint8 i;
     uint8 ret = 1;
    
-//    if(rxCount < MAX_PACKET_LENGTH - 1) {
-//        return 0;    
-//    }
     if(enemyIdLength == 0) {
         usbSendString((uint8*)"ERROR: Enemy Id Uninitialized\n");
         return 0;
@@ -224,9 +215,9 @@ uint8 uartValidPacketReceived(void) {
         ret = 0;
     }
     if(ret) {
-//        usbSendString((uint8*)"Good Packet: ");
-//        usbSendString(rxBuffer);
-//        usbSendString((uint8*)"\n");
+        //usbSendString((uint8*)"Good Packet: ");
+        //usbSendString(rxBuffer);
+        //usbSendString((uint8*)"\n");
         sprintf((char*)rxPacketArr, "%s", rxBuffer);
     } else {
         usbSendString((uint8*)"Bad Packet: ");
@@ -266,23 +257,6 @@ uint8 uartParseRxPacket(void) {
     rxPacket.packetReady = 1;
     //uartClearRxBuffer();
     return 1;
-}
-
-
-void uartTestRxPacket(void) {
-    rxPacketArr[0] = 0x55;
-    rxPacketArr[1] = 0xaa;
-
-    sprintf((char*)&rxPacketArr[ID_INDEX], "%s", "ENEMY ");
-    setIndices(ENEMY);
-
-    sprintf((char*)&rxPacketArr[enemySeqIndex], "%03d", 110);
-
-    rxPacketArr[enemyPFlagIndex] = '0';
-
-    sprintf((char*)&rxPacketArr[enemyRowIndex], "%02d", 14);
-    sprintf((char*)&rxPacketArr[enemyColumnIndex], "%02d", 1); 
-    uartPrintPacket(rxPacketArr);
 }
 
 
@@ -326,17 +300,14 @@ void setIndices(uint8 playerOrEnemy) {
     } 
 }
 
-
 void uartPrintPacket(uint8 packet[]) {
     char outString[MAX_PACKET_LENGTH + 1] = {};
     sprintf(outString, "%s\r", packet);
-    //printf("%s\n", outString);
-    //LCD_PrintString(outString);
     usbSendString((uint8*)outString);
 }
 
-
-//Returns decimal number array to single num ("123" -> 123)
+//Returns decimal representation of char 
+//number array to single num ("123" -> 123)
 uint64 stringToNumber(uint8 string[], uint8 length) {
     uint8 i;
     uint32 multiplier = 1;
@@ -362,13 +333,12 @@ uint8 uCompareStrings(char string1[], char string2[]) {
     return i;
 }
 
-
 CY_ISR(txIsr) { //FIFO EMPTY
     uint8 i = 0;
     for(; i < 4 && txBuffer[txCount]; i++) {
         //UART_PutChar(txBuffer[txCount++]);
     }  
- }
+}
 
 
 CY_ISR(rxIsr) { //BYTE RECEIVED

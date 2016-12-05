@@ -92,10 +92,6 @@ uint8 uartParseRxPacket(void);
 void uartClearRxBuffer(void);
 
 
-//Loads arbitrary data into the rxPacket buffer to test parsing
-void uartTestRxPacket(void);
-
-
 void uartPrintRxPacket(void);
 
-#endif
+#endif //UART_PROTOCOL_H
